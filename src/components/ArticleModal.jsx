@@ -14,7 +14,7 @@ import {
 export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLoginSuccess }) => {
   if (!article) return null;
 
-  const [fontSize, setFontSize] = useState(18);
+  const [zoomLevel, setZoomLevel] = useState(1.0); // 0.7 to 1.8 document zoom scale
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState('1.0x');
   const [audioProgress, setAudioProgress] = useState(0); // 0 to 100%
@@ -32,11 +32,27 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
                      article.isDeepDive;
   const isGated = isDeepDive && !isLoggedIn;
 
-  // Lock background scroll when modal is open & cancel speech synthesis on close
+  // Lock background scroll when modal is open & listen for Ctrl + / Ctrl - keyboard shortcuts
   useEffect(() => {
     document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === '=' || e.key === '+') {
+          e.preventDefault();
+          setZoomLevel(prev => Math.min(1.8, +(prev + 0.15).toFixed(2)));
+        } else if (e.key === '-') {
+          e.preventDefault();
+          setZoomLevel(prev => Math.max(0.7, +(prev - 0.15).toFixed(2)));
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+
     return () => {
       document.body.style.overflow = 'unset';
+      window.removeEventListener('keydown', handleKeyDown);
       if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
         window.speechSynthesis.cancel();
       }
@@ -166,23 +182,26 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {/* Functional Text Resizer Pill (A- / A+) */}
+            {/* Functional Text Resizer Pill (A- / A+ / Keyboard Ctrl+ / Ctrl-) */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-secondary, #f5f5f5)', borderRadius: '6px', padding: '4px 12px' }}>
               <button 
-                onClick={() => setFontSize(Math.max(14, fontSize - 2))} 
+                onClick={() => setZoomLevel(prev => Math.max(0.7, +(prev - 0.15).toFixed(2)))} 
                 style={{ fontWeight: 800, fontSize: '14px', padding: '2px 6px', color: 'var(--text-primary)', border: 'none', background: 'none', cursor: 'pointer' }}
-                title="Decrease Text Size (A-)"
+                title="Decrease Text & Document Size (Ctrl - or A-)"
               >
                 A-
               </button>
               <span style={{ color: 'var(--border-color, #ccc)', fontSize: '12px' }}>|</span>
               <button 
-                onClick={() => setFontSize(Math.min(30, fontSize + 2))} 
+                onClick={() => setZoomLevel(prev => Math.min(1.8, +(prev + 0.15).toFixed(2)))} 
                 style={{ fontWeight: 800, fontSize: '14px', padding: '2px 6px', color: 'var(--text-primary)', border: 'none', background: 'none', cursor: 'pointer' }}
-                title="Increase Text Size (A+)"
+                title="Increase Text & Document Size (Ctrl + or A+)"
               >
                 A+
               </button>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '4px', fontFamily: 'var(--font-mono)' }}>
+                {Math.round(zoomLevel * 100)}%
+              </span>
             </div>
 
             {/* Bookmark */}
@@ -198,13 +217,21 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
           </div>
         </div>
 
-        {/* Article Headline */}
-        <h1 style={{ fontFamily: "var(--font-headline, Georgia, serif)", fontSize: '36px', lineHeight: 1.22, fontWeight: 800, color: 'var(--text-primary)', marginBottom: '16px' }}>
+        {/* Article Headline with Dynamic Zoom Scaling */}
+        <h1 style={{ 
+          fontFamily: "var(--font-headline, Georgia, serif)", 
+          fontSize: `${Math.round(36 * zoomLevel)}px`, 
+          lineHeight: 1.22, 
+          fontWeight: 800, 
+          color: 'var(--text-primary)', 
+          marginBottom: '16px',
+          transition: 'font-size 0.2s ease'
+        }}>
           {article.title}
         </h1>
 
         {/* Metadata Row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: 'var(--text-muted)', marginBottom: '20px', fontFamily: 'var(--font-sans)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: `${Math.round(14 * zoomLevel)}px`, color: 'var(--text-muted)', marginBottom: '20px', fontFamily: 'var(--font-sans)', transition: 'font-size 0.2s ease' }}>
           <span style={{ fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', textDecoration: 'underline' }}>
             {article.author || "THE DAILY BRIEF BUREAU"}
           </span>
@@ -309,15 +336,15 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
               style={{ width: '100%', borderRadius: '8px', maxHeight: '480px', objectFit: 'cover' }} 
             />
             {article.imageCaption && (
-              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '10px', fontStyle: 'italic' }}>
+              <p style={{ fontSize: `${Math.round(13 * zoomLevel)}px`, color: 'var(--text-muted)', marginTop: '10px', fontStyle: 'italic', transition: 'font-size 0.2s ease' }}>
                 {article.imageCaption}
               </p>
             )}
           </div>
         )}
 
-        {/* Content Paragraphs with Dynamic Font Size Resizing & Paywall Gating */}
-        <div style={{ fontFamily: "var(--font-body, Georgia, serif)", fontSize: `${fontSize}px`, lineHeight: 1.7, color: 'var(--text-primary)', transition: 'font-size 0.2s ease' }}>
+        {/* Content Paragraphs with Dynamic Font & Document Zoom Scaling */}
+        <div style={{ fontFamily: "var(--font-body, Georgia, serif)", fontSize: `${Math.round(18 * zoomLevel)}px`, lineHeight: 1.7, color: 'var(--text-primary)', transition: 'font-size 0.2s ease' }}>
           {paragraphs.slice(0, isGated ? 1 : paragraphs.length).map((paragraph, idx) => (
             <p key={idx} style={{ marginBottom: '24px' }}>
               {paragraph}
