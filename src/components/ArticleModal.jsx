@@ -112,7 +112,6 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
       utterance.onend = () => {
         setIsPlayingAudio(false);
         setAudioProgress(100);
-        setElapsedTimeStr('5:00');
         if (progressTimerRef.current) clearInterval(progressTimerRef.current);
       };
 
@@ -123,6 +122,8 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
 
       window.speechSynthesis.speak(utterance);
       setIsPlayingAudio(true);
+      setAudioProgress(0);
+      setElapsedTimeStr('0:00');
 
       // Start time tracking
       startTimeRef.current = Date.now();
@@ -135,8 +136,9 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
         const secs = (secondsPlayed % 60).toString().padStart(2, '0');
         setElapsedTimeStr(`${mins}:${secs}`);
 
-        // Estimate progress over 5 minutes if boundary events aren't supported by browser
-        const estProgress = Math.min(99, Math.round((secondsPlayed / 300) * 100));
+        // Estimate progress bar fill based on character reading rate (approx 15 chars/sec)
+        const estimatedTotalSecs = Math.max(15, Math.round(totalChars / (15 * rate)));
+        const estProgress = Math.min(99, Math.round((secondsPlayed / estimatedTotalSecs) * 100));
         setAudioProgress(prev => Math.max(prev, estProgress));
       }, 1000);
     }
@@ -252,7 +254,7 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
           boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justify: 'space-between',
           gap: '18px',
           flexWrap: 'wrap'
         }}>
@@ -268,7 +270,7 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
+                justify: 'center',
                 border: 'none',
                 cursor: 'pointer',
                 boxShadow: isPlayingAudio ? '0 0 18px rgba(220, 38, 38, 0.6)' : '0 0 18px rgba(5, 150, 105, 0.6)',
@@ -290,9 +292,9 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
             </div>
           </div>
 
-          {/* Audio Progress Slider Bar */}
+          {/* Live Audio Playback Timer Bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1 1 240px' }}>
-            <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
+            <span style={{ fontSize: '12px', color: '#94a3b8', fontFamily: 'var(--font-mono)', minWidth: '32px', fontWeight: 600 }}>
               {elapsedTimeStr}
             </span>
             <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.18)', borderRadius: '3px', overflow: 'hidden', position: 'relative' }}>
@@ -304,7 +306,6 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
                 transition: 'width 0.3s ease'
               }}></div>
             </div>
-            <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>5:00</span>
           </div>
 
           {/* Playback Speed selector */}
