@@ -39,8 +39,28 @@ export function Header({
   const [isScrolled, setIsScrolled] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [internalMenuOpen, setInternalMenuOpen] = useState(false);
+  const [tickerData, setTickerData] = useState(MARKET_INDICES);
 
   const isMenuOpen = parentIsMenuOpen !== undefined ? parentIsMenuOpen : internalMenuOpen;
+
+  // Fetch live Binance & Market indices data
+  useEffect(() => {
+    const fetchLiveTicker = async () => {
+      try {
+        const res = await fetch('/api/market-ticker');
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          setTickerData(json.data);
+        }
+      } catch (err) {
+        console.error('Failed to fetch live Binance market ticker:', err);
+      }
+    };
+
+    fetchLiveTicker();
+    const interval = setInterval(fetchLiveTicker, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleToggleMenu = () => {
     if (parentIsMenuOpen !== undefined) {
@@ -148,7 +168,7 @@ export function Header({
       {isMarketsSection && (
         <div className="ticker-bar">
           <div className="ticker-wrapper">
-            {MARKET_INDICES.concat(MARKET_INDICES).map((item, idx) => (
+            {tickerData.concat(tickerData).map((item, idx) => (
               <div key={idx} className="ticker-item">
                 <span style={{ fontWeight: 700, color: '#e2e8f0' }}>{item.symbol}:</span>
                 <span>{item.value}</span>
