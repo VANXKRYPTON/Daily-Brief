@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
   Play,
@@ -6,7 +6,6 @@ import {
   VolumeX, 
   Bookmark, 
   Share2, 
-  Type, 
   Clock, 
   Lock,
   UserCheck
@@ -18,25 +17,129 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
   const [fontSize, setFontSize] = useState(18);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState('1.0x');
+  const [audioProgress, setAudioProgress] = useState(0); // 0 to 100%
+  const [elapsedTimeStr, setElapsedTimeStr] = useState('0:00');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  // Lock background scroll when modal is open
+  const utteranceRef = useRef(null);
+  const startTimeRef = useRef(null);
+  const progressTimerRef = useRef(null);
+
+  const paragraphs = (article.content || article.excerpt || "Full article text loading...").split('\n\n');
+  const isDeepDive = article.category?.toUpperCase()?.includes('DEEP DIVE') || 
+                     article.slug?.includes('deep-dive') ||
+                     article.isDeepDive;
+  const isGated = isDeepDive && !isLoggedIn;
+
+  // Lock background scroll when modal is open & cancel speech synthesis on close
   useEffect(() => {
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = 'unset';
+      if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+        window.speechSynthesis.cancel();
+      }
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
     };
   }, []);
 
-  const isDeepDive = article.category?.toUpperCase()?.includes('DEEP DIVE') || 
-                     article.slug?.includes('deep-dive') ||
-                     article.isDeepDive;
+  // Get numeric rate from speed string
+  const getRate = (speedStr) => {
+    switch(speedStr) {
+      case '1.25x': return 1.25;
+      case '1.5x': return 1.5;
+      case '2.0x': return 2.0;
+      default: return 1.0;
+    }
+  };
 
-  const isGated = isDeepDive && !isLoggedIn;
-
+  // Toggle AI Voiceover Audio Reader
   const toggleAudio = () => {
-    setIsPlayingAudio(!isPlayingAudio);
+    if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
+      alert("Text-to-speech audio reader is not supported in this browser.");
+      return;
+    }
+
+    if (isPlayingAudio) {
+      // Stop speech
+      window.speechSynthesis.cancel();
+      setIsPlayingAudio(false);
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    } else {
+      window.speechSynthesis.cancel();
+
+      const textToRead = `${article.title}. By ${article.author || 'The Daily Brief Bureau'}. ${paragraphs.slice(0, isGated ? 1 : paragraphs.length).join('. ')}`;
+      const utterance = new SpeechSynthesisUtterance(textToRead);
+      utteranceRef.current = utterance;
+
+      const rate = getRate(playbackSpeed);
+      utterance.rate = rate;
+      utterance.pitch = 1.0;
+
+      // Select natural English voice if available
+      const voices = window.speechSynthesis.getVoices();
+      const englishVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Daniel'))) || voices.find(v => v.lang.startsWith('en'));
+      if (englishVoice) {
+        utterance.voice = englishVoice;
+      }
+
+      const totalChars = textToRead.length;
+
+      utterance.onboundary = (event) => {
+        if (event.charIndex !== undefined && totalChars > 0) {
+          const progress = Math.min(100, Math.round((event.charIndex / totalChars) * 100));
+          setAudioProgress(progress);
+        }
+      };
+
+      utterance.onend = () => {
+        setIsPlayingAudio(false);
+        setAudioProgress(100);
+        setElapsedTimeStr('5:00');
+        if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      };
+
+      utterance.onerror = () => {
+        setIsPlayingAudio(false);
+        if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      };
+
+      window.speechSynthesis.speak(utterance);
+      setIsPlayingAudio(true);
+
+      // Start time tracking
+      startTimeRef.current = Date.now();
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      
+      let secondsPlayed = 0;
+      progressTimerRef.current = setInterval(() => {
+        secondsPlayed += 1;
+        const mins = Math.floor(secondsPlayed / 60);
+        const secs = (secondsPlayed % 60).toString().padStart(2, '0');
+        setElapsedTimeStr(`${mins}:${secs}`);
+
+        // Estimate progress over 5 minutes if boundary events aren't supported by browser
+        const estProgress = Math.min(99, Math.round((secondsPlayed / 300) * 100));
+        setAudioProgress(prev => Math.max(prev, estProgress));
+      }, 1000);
+    }
+  };
+
+  // Change Playback Speed dynamically
+  const handleSpeedChange = () => {
+    const speeds = ['1.0x', '1.25x', '1.5x', '2.0x'];
+    const currentIdx = speeds.indexOf(playbackSpeed);
+    const nextSpeed = speeds[(currentIdx + 1) % speeds.length];
+    setPlaybackSpeed(nextSpeed);
+
+    if (isPlayingAudio && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      setIsPlayingAudio(false);
+      setTimeout(() => {
+        toggleAudio();
+      }, 100);
+    }
   };
 
   const handleShare = () => {
@@ -44,8 +147,6 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  const paragraphs = (article.content || article.excerpt || "Full article text loading...").split('\n\n');
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -65,20 +166,23 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {/* Audio Toggle Shortcut */}
-            <button 
-              onClick={toggleAudio} 
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: isPlayingAudio ? '#dc2626' : 'var(--text-secondary)' }}
-            >
-              {isPlayingAudio ? <VolumeX size={16} /> : <Volume2 size={16} />}
-              <span>{isPlayingAudio ? "Pause Audio" : "Listen (5 min)"}</span>
-            </button>
-
-            {/* Font Resizer */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--bg-secondary, #f5f5f5)', borderRadius: '6px', padding: '3px 10px' }}>
-              <Type size={14} />
-              <button onClick={() => setFontSize(Math.max(14, fontSize - 2))} style={{ fontWeight: 700, padding: '2px 6px' }}>A-</button>
-              <button onClick={() => setFontSize(Math.min(26, fontSize + 2))} style={{ fontWeight: 700, padding: '2px 6px' }}>A+</button>
+            {/* Functional Text Resizer Pill (A- / A+) */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-secondary, #f5f5f5)', borderRadius: '6px', padding: '4px 12px' }}>
+              <button 
+                onClick={() => setFontSize(Math.max(14, fontSize - 2))} 
+                style={{ fontWeight: 800, fontSize: '14px', padding: '2px 6px', color: 'var(--text-primary)', border: 'none', background: 'none', cursor: 'pointer' }}
+                title="Decrease Text Size (A-)"
+              >
+                A-
+              </button>
+              <span style={{ color: 'var(--border-color, #ccc)', fontSize: '12px' }}>|</span>
+              <button 
+                onClick={() => setFontSize(Math.min(30, fontSize + 2))} 
+                style={{ fontWeight: 800, fontSize: '14px', padding: '2px 6px', color: 'var(--text-primary)', border: 'none', background: 'none', cursor: 'pointer' }}
+                title="Increase Text Size (A+)"
+              >
+                A+
+              </button>
             </div>
 
             {/* Bookmark */}
@@ -111,7 +215,7 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
           </span>
         </div>
 
-        {/* Prominent Embedded Audio News Player Banner inside Article Modal */}
+        {/* Real Functional AI Voiceover News Player Card */}
         <div style={{
           background: 'linear-gradient(135deg, var(--bg-dark-accent, #0f172a) 0%, #1e293b 100%)',
           color: '#ffffff',
@@ -121,36 +225,37 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
           boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
           display: 'flex',
           alignItems: 'center',
-          justify: 'space-between',
+          justifyContent: 'space-between',
           gap: '18px',
           flexWrap: 'wrap'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: '1 1 300px' }}>
+            {/* Play / Pause Voiceover Audio Button */}
             <button 
               onClick={toggleAudio} 
               style={{
-                width: '44px',
-                height: '44px',
+                width: '46px',
+                height: '46px',
                 borderRadius: '50%',
                 background: isPlayingAudio ? 'var(--accent-crimson, #dc2626)' : 'var(--accent-emerald, #059669)',
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
-                justify: 'center',
+                justifyContent: 'center',
                 border: 'none',
                 cursor: 'pointer',
-                boxShadow: isPlayingAudio ? '0 0 16px rgba(220, 38, 38, 0.5)' : '0 0 16px rgba(5, 150, 105, 0.5)',
+                boxShadow: isPlayingAudio ? '0 0 18px rgba(220, 38, 38, 0.6)' : '0 0 18px rgba(5, 150, 105, 0.6)',
                 flexShrink: 0,
                 transition: 'transform 0.15s ease'
               }}
-              title={isPlayingAudio ? "Pause Audio News Digest" : "Play Audio News Digest"}
+              title={isPlayingAudio ? "Stop AI Voiceover" : "Play AI Voiceover News"}
             >
-              {isPlayingAudio ? <VolumeX size={20} /> : <Play size={20} style={{ marginLeft: '2px' }} />}
+              {isPlayingAudio ? <VolumeX size={22} /> : <Play size={22} style={{ marginLeft: '2px' }} />}
             </button>
 
             <div>
-              <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--accent-emerald, #34d399)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '2px' }}>
-                DAILY BRIEF AUDIO DIGEST • LISTEN TO ARTICLE (5 MIN READ)
+              <div style={{ fontSize: '11px', fontWeight: 800, color: isPlayingAudio ? '#f87171' : 'var(--accent-emerald, #34d399)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>{isPlayingAudio ? "🎙️ READING NEWS ALOUD..." : "DAILY BRIEF AI VOICEOVER • LISTEN TO ARTICLE"}</span>
               </div>
               <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '420px' }}>
                 {article.title}
@@ -161,13 +266,13 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
           {/* Audio Progress Slider Bar */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1 1 240px' }}>
             <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
-              {isPlayingAudio ? '1:14' : '0:00'}
+              {elapsedTimeStr}
             </span>
-            <div style={{ flex: 1, height: '5px', background: 'rgba(255,255,255,0.18)', borderRadius: '3px', overflow: 'hidden', position: 'relative' }}>
+            <div style={{ flex: 1, height: '6px', background: 'rgba(255,255,255,0.18)', borderRadius: '3px', overflow: 'hidden', position: 'relative' }}>
               <div style={{
-                width: isPlayingAudio ? '35%' : '0%',
+                width: `${audioProgress}%`,
                 height: '100%',
-                background: isPlayingAudio ? 'linear-gradient(90deg, #059669 0%, #34d399 100%)' : '#34d399',
+                background: isPlayingAudio ? 'linear-gradient(90deg, #dc2626 0%, #059669 100%)' : '#059669',
                 borderRadius: '3px',
                 transition: 'width 0.3s ease'
               }}></div>
@@ -177,22 +282,19 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
 
           {/* Playback Speed selector */}
           <button 
-            onClick={() => {
-              const speeds = ['1.0x', '1.25x', '1.5x', '2.0x'];
-              const currentIdx = speeds.indexOf(playbackSpeed);
-              setPlaybackSpeed(speeds[(currentIdx + 1) % speeds.length]);
-            }}
+            onClick={handleSpeedChange}
             style={{
               fontSize: '12px',
               fontWeight: 700,
               color: '#cbd5e1',
               background: 'rgba(255,255,255,0.1)',
-              padding: '4px 10px',
+              padding: '5px 12px',
               borderRadius: '6px',
               border: '1px solid rgba(255,255,255,0.15)',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              transition: 'background 0.2s'
             }}
-            title="Change Playback Speed"
+            title="Change AI Voiceover Speed"
           >
             {playbackSpeed}
           </button>
@@ -214,8 +316,8 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
           </div>
         )}
 
-        {/* Content Paragraphs with Paywall Gating */}
-        <div style={{ fontFamily: "var(--font-body, Georgia, serif)", fontSize: `${fontSize}px`, lineHeight: 1.7, color: 'var(--text-primary)' }}>
+        {/* Content Paragraphs with Dynamic Font Size Resizing & Paywall Gating */}
+        <div style={{ fontFamily: "var(--font-body, Georgia, serif)", fontSize: `${fontSize}px`, lineHeight: 1.7, color: 'var(--text-primary)', transition: 'font-size 0.2s ease' }}>
           {paragraphs.slice(0, isGated ? 1 : paragraphs.length).map((paragraph, idx) => (
             <p key={idx} style={{ marginBottom: '24px' }}>
               {paragraph}
