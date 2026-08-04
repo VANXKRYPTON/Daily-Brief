@@ -20,6 +20,9 @@ export const CATEGORIES = [
   { name: "Global Affairs", slug: "global" },
   { name: "Markets & Economy", slug: "markets" },
   { name: "Science & Climate", slug: "science" },
+  { name: "Movies", slug: "movies" },
+  { name: "Lifestyle", slug: "lifestyle" },
+  { name: "Sports", slug: "sports" },
   { name: "Opinion & Essays", slug: "opinion" },
   { name: "Culture & Design", slug: "culture" },
   { name: "Deep Dives 💎", slug: "deep-dives" }
