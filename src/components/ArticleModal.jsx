@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Volume2, 
@@ -14,10 +14,18 @@ import {
 export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLoginSuccess }) => {
   if (!article) return null;
 
-  const [fontSize, setFontSize] = useState(17);
+  const [fontSize, setFontSize] = useState(18);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Lock background scroll when modal is open
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
 
   const isDeepDive = article.category?.toUpperCase()?.includes('DEEP DIVE') || 
                      article.slug?.includes('deep-dive') ||
@@ -42,42 +50,42 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
       <div 
         className="modal-content" 
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: '820px' }}
+        style={{ width: '92%', maxWidth: '980px', maxHeight: '88vh', overflowY: 'auto', padding: '36px 44px' }}
       >
         <button className="btn-close-modal" onClick={onClose} aria-label="Close article">
           <X size={20} />
         </button>
 
         {/* Reader Utility Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #eee', paddingBottom: '14px', marginBottom: '20px' }}>
-          <div className="category-badge" style={{ margin: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color, #eee)', paddingBottom: '16px', marginBottom: '24px' }}>
+          <div className="category-badge" style={{ margin: 0, fontSize: '13px', fontWeight: 800 }}>
             {article.category || "NEWS"} {isDeepDive && "💎 PREMIUM"}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             {/* Audio Reader */}
             <button 
               onClick={toggleAudio} 
-              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: isPlayingAudio ? '#dc2626' : '#444' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: isPlayingAudio ? '#dc2626' : 'var(--text-secondary)' }}
             >
               {isPlayingAudio ? <VolumeX size={16} /> : <Volume2 size={16} />}
               <span>{isPlayingAudio ? "Pause Audio" : "Listen (2 min)"}</span>
             </button>
 
             {/* Font Resizer */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: '#f5f5f5', borderRadius: '4px', padding: '2px 8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'var(--bg-secondary, #f5f5f5)', borderRadius: '6px', padding: '3px 10px' }}>
               <Type size={14} />
-              <button onClick={() => setFontSize(Math.max(14, fontSize - 2))} style={{ fontWeight: 700, padding: '2px 4px' }}>A-</button>
-              <button onClick={() => setFontSize(Math.min(24, fontSize + 2))} style={{ fontWeight: 700, padding: '2px 4px' }}>A+</button>
+              <button onClick={() => setFontSize(Math.max(14, fontSize - 2))} style={{ fontWeight: 700, padding: '2px 6px' }}>A-</button>
+              <button onClick={() => setFontSize(Math.min(26, fontSize + 2))} style={{ fontWeight: 700, padding: '2px 6px' }}>A+</button>
             </div>
 
             {/* Bookmark */}
-            <button onClick={() => setIsBookmarked(!isBookmarked)} style={{ color: isBookmarked ? '#dc2626' : '#444' }}>
+            <button onClick={() => setIsBookmarked(!isBookmarked)} style={{ color: isBookmarked ? '#dc2626' : 'var(--text-secondary)' }}>
               <Bookmark size={18} fill={isBookmarked ? '#dc2626' : 'none'} />
             </button>
 
             {/* Share */}
-            <button onClick={handleShare} style={{ color: '#444' }}>
+            <button onClick={handleShare} style={{ color: 'var(--text-secondary)' }}>
               <Share2 size={18} />
             </button>
             {copied && <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 700 }}>Link Copied!</span>}
@@ -85,13 +93,13 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
         </div>
 
         {/* Article Headline */}
-        <h1 style={{ fontFamily: "var(--font-headline)", fontSize: '32px', lineHeight: 1.25, fontWeight: 800, color: '#111', marginBottom: '14px' }}>
+        <h1 style={{ fontFamily: "var(--font-headline, Georgia, serif)", fontSize: '36px', lineHeight: 1.22, fontWeight: 800, color: 'var(--text-primary)', marginBottom: '16px' }}>
           {article.title}
         </h1>
 
         {/* Metadata Row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '13px', color: '#666', marginBottom: '20px', fontFamily: 'var(--font-sans)' }}>
-          <span style={{ fontWeight: 800, color: '#333', textTransform: 'uppercase', textDecoration: 'underline' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px', fontFamily: 'var(--font-sans)' }}>
+          <span style={{ fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', textDecoration: 'underline' }}>
             {article.author || "THE DAILY BRIEF BUREAU"}
           </span>
           <span>•</span>
@@ -103,14 +111,14 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
 
         {/* Featured Image if available */}
         {article.imageUrl && (
-          <div style={{ marginBottom: '24px' }}>
+          <div style={{ marginBottom: '28px' }}>
             <img 
               src={article.imageUrl} 
               alt={article.title} 
-              style={{ width: '100%', borderRadius: '4px', maxHeight: '420px', objectFit: 'cover' }} 
+              style={{ width: '100%', borderRadius: '8px', maxHeight: '480px', objectFit: 'cover' }} 
             />
             {article.imageCaption && (
-              <p style={{ fontSize: '13px', color: '#666', marginTop: '8px', fontStyle: 'italic' }}>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '10px', fontStyle: 'italic' }}>
                 {article.imageCaption}
               </p>
             )}
@@ -118,16 +126,16 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
         )}
 
         {/* Content Paragraphs with Paywall Gating */}
-        <div style={{ fontFamily: "var(--font-body)", fontSize: `${fontSize}px`, lineHeight: 1.65, color: '#222' }}>
+        <div style={{ fontFamily: "var(--font-body, Georgia, serif)", fontSize: `${fontSize}px`, lineHeight: 1.7, color: 'var(--text-primary)' }}>
           {paragraphs.slice(0, isGated ? 1 : paragraphs.length).map((paragraph, idx) => (
-            <p key={idx} style={{ marginBottom: '20px' }}>
+            <p key={idx} style={{ marginBottom: '24px' }}>
               {paragraph}
             </p>
           ))}
 
           {/* Gated Paywall Banner for Deep Dives */}
           {isGated && (
-            <div style={{ position: 'relative', marginTop: '20px', minHeight: '260px' }}>
+            <div style={{ position: 'relative', marginTop: '24px', minHeight: '260px' }}>
               {/* Blurred teaser snippet */}
               <div style={{ filter: 'blur(5px)', userSelect: 'none', pointerEvents: 'none', opacity: 0.5 }}>
                 <p style={{ marginBottom: '16px' }}>
