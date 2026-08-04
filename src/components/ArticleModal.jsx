@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, 
+  Play,
   Volume2, 
   VolumeX, 
   Bookmark, 
@@ -16,6 +17,7 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
 
   const [fontSize, setFontSize] = useState(18);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState('1.0x');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [copied, setCopied] = useState(false);
 
@@ -63,13 +65,13 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {/* Audio Reader */}
+            {/* Audio Toggle Shortcut */}
             <button 
               onClick={toggleAudio} 
               style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: 600, color: isPlayingAudio ? '#dc2626' : 'var(--text-secondary)' }}
             >
               {isPlayingAudio ? <VolumeX size={16} /> : <Volume2 size={16} />}
-              <span>{isPlayingAudio ? "Pause Audio" : "Listen (2 min)"}</span>
+              <span>{isPlayingAudio ? "Pause Audio" : "Listen (5 min)"}</span>
             </button>
 
             {/* Font Resizer */}
@@ -98,7 +100,7 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
         </h1>
 
         {/* Metadata Row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px', fontFamily: 'var(--font-sans)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '14px', color: 'var(--text-muted)', marginBottom: '20px', fontFamily: 'var(--font-sans)' }}>
           <span style={{ fontWeight: 800, color: 'var(--text-primary)', textTransform: 'uppercase', textDecoration: 'underline' }}>
             {article.author || "THE DAILY BRIEF BUREAU"}
           </span>
@@ -107,6 +109,93 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
             <Clock size={14} />
             {article.time || "Just now"}
           </span>
+        </div>
+
+        {/* Prominent Embedded Audio News Player Banner inside Article Modal */}
+        <div style={{
+          background: 'linear-gradient(135deg, var(--bg-dark-accent, #0f172a) 0%, #1e293b 100%)',
+          color: '#ffffff',
+          borderRadius: '12px',
+          padding: '16px 22px',
+          marginBottom: '28px',
+          boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
+          display: 'flex',
+          alignItems: 'center',
+          justify: 'space-between',
+          gap: '18px',
+          flexWrap: 'wrap'
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: '1 1 300px' }}>
+            <button 
+              onClick={toggleAudio} 
+              style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '50%',
+                background: isPlayingAudio ? 'var(--accent-crimson, #dc2626)' : 'var(--accent-emerald, #059669)',
+                color: '#fff',
+                display: 'flex',
+                alignItems: 'center',
+                justify: 'center',
+                border: 'none',
+                cursor: 'pointer',
+                boxShadow: isPlayingAudio ? '0 0 16px rgba(220, 38, 38, 0.5)' : '0 0 16px rgba(5, 150, 105, 0.5)',
+                flexShrink: 0,
+                transition: 'transform 0.15s ease'
+              }}
+              title={isPlayingAudio ? "Pause Audio News Digest" : "Play Audio News Digest"}
+            >
+              {isPlayingAudio ? <VolumeX size={20} /> : <Play size={20} style={{ marginLeft: '2px' }} />}
+            </button>
+
+            <div>
+              <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--accent-emerald, #34d399)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '2px' }}>
+                DAILY BRIEF AUDIO DIGEST • LISTEN TO ARTICLE (5 MIN READ)
+              </div>
+              <div style={{ fontSize: '13.5px', fontWeight: 700, color: '#f8fafc', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '420px' }}>
+                {article.title}
+              </div>
+            </div>
+          </div>
+
+          {/* Audio Progress Slider Bar */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: '1 1 240px' }}>
+            <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
+              {isPlayingAudio ? '1:14' : '0:00'}
+            </span>
+            <div style={{ flex: 1, height: '5px', background: 'rgba(255,255,255,0.18)', borderRadius: '3px', overflow: 'hidden', position: 'relative' }}>
+              <div style={{
+                width: isPlayingAudio ? '35%' : '0%',
+                height: '100%',
+                background: isPlayingAudio ? 'linear-gradient(90deg, #059669 0%, #34d399 100%)' : '#34d399',
+                borderRadius: '3px',
+                transition: 'width 0.3s ease'
+              }}></div>
+            </div>
+            <span style={{ fontSize: '11px', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>5:00</span>
+          </div>
+
+          {/* Playback Speed selector */}
+          <button 
+            onClick={() => {
+              const speeds = ['1.0x', '1.25x', '1.5x', '2.0x'];
+              const currentIdx = speeds.indexOf(playbackSpeed);
+              setPlaybackSpeed(speeds[(currentIdx + 1) % speeds.length]);
+            }}
+            style={{
+              fontSize: '12px',
+              fontWeight: 700,
+              color: '#cbd5e1',
+              background: 'rgba(255,255,255,0.1)',
+              padding: '4px 10px',
+              borderRadius: '6px',
+              border: '1px solid rgba(255,255,255,0.15)',
+              cursor: 'pointer'
+            }}
+            title="Change Playback Speed"
+          >
+            {playbackSpeed}
+          </button>
         </div>
 
         {/* Featured Image if available */}

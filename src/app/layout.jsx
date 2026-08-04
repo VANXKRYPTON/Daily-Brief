@@ -3,7 +3,6 @@
 import React, { useState } from 'react';
 import './globals.css';
 import { Header } from '../components/Header';
-import { AudioPlayerBar } from '../components/AudioPlayerBar';
 import { SearchOverlay } from '../components/SearchOverlay';
 import { NewsletterModal } from '../components/NewsletterModal';
 import { NavDrawer } from '../components/NavDrawer';
@@ -31,7 +30,6 @@ export default function RootLayout({ children }) {
         
         {children}
 
-        <AudioPlayerBar />
         <Footer />
 
         {isSearchOpen && (
