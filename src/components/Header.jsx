@@ -134,23 +134,33 @@ export function Header({
     else if (onOpenNewsletter) onOpenNewsletter();
   };
 
+  const activeCatStr = (activeCat || '').toString().toLowerCase();
+  const isMarketsSection = 
+    activeCatStr === 'markets' || 
+    activeCatStr.includes('market') || 
+    activeCatStr.includes('econom') ||
+    activeCatStr.includes('stock') ||
+    activeCatStr.includes('capital');
+
   return (
     <header className={`header-wrapper ${isScrolled ? 'is-scrolled' : ''} ${showHeader ? 'show-header' : 'hide-header'}`}>
-      {/* Financial Ticker Top Bar */}
-      <div className="ticker-bar">
-        <div className="ticker-wrapper">
-          {MARKET_INDICES.concat(MARKET_INDICES).map((item, idx) => (
-            <div key={idx} className="ticker-item">
-              <span style={{ fontWeight: 700, color: '#e2e8f0' }}>{item.symbol}:</span>
-              <span>{item.value}</span>
-              <span className={item.isPositive ? 'ticker-pos' : 'ticker-neg'}>
-                {item.change}
-              </span>
-              <span style={{ color: '#475569', margin: '0 8px' }}>|</span>
-            </div>
-          ))}
+      {/* Financial Ticker Top Bar - Appears ONLY when in Markets & Economy section */}
+      {isMarketsSection && (
+        <div className="ticker-bar">
+          <div className="ticker-wrapper">
+            {MARKET_INDICES.concat(MARKET_INDICES).map((item, idx) => (
+              <div key={idx} className="ticker-item">
+                <span style={{ fontWeight: 700, color: '#e2e8f0' }}>{item.symbol}:</span>
+                <span>{item.value}</span>
+                <span className={item.isPositive ? 'ticker-pos' : 'ticker-neg'}>
+                  {item.change}
+                </span>
+                <span style={{ color: '#475569', margin: '0 8px' }}>|</span>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Main Newspaper Masthead */}
       <div className="masthead">
