@@ -8,7 +8,11 @@ import {
   Share2, 
   Clock, 
   Lock,
-  UserCheck
+  UserCheck,
+  Gauge,
+  Plus,
+  Minus,
+  ChevronRight
 } from 'lucide-react';
 
 export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLoginSuccess }) => {
@@ -16,7 +20,8 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
 
   const [zoomLevel, setZoomLevel] = useState(1.0); // 0.7 to 1.8 document zoom scale
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState('1.0x');
+  const [playbackSpeed, setPlaybackSpeed] = useState(1.0); // Numeric speed float (1.0 = Normal)
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0); // 0 to 100%
   const [elapsedTimeStr, setElapsedTimeStr] = useState('0:00');
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -25,6 +30,7 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
   const utteranceRef = useRef(null);
   const startTimeRef = useRef(null);
   const progressTimerRef = useRef(null);
+  const speedMenuRef = useRef(null);
 
   const paragraphs = (article.content || article.excerpt || "Full article text loading...").split('\n\n');
   const isDeepDive = article.category?.toUpperCase()?.includes('DEEP DIVE') || 
@@ -60,102 +66,103 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
     };
   }, []);
 
-  // Get numeric rate from speed string
-  const getRate = (speedStr) => {
-    switch(speedStr) {
-      case '1.25x': return 1.25;
-      case '1.5x': return 1.5;
-      case '2.0x': return 2.0;
-      default: return 1.0;
-    }
-  };
+  // Handle click outside speed menu popover
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (speedMenuRef.current && !speedMenuRef.current.contains(e.target)) {
+        setShowSpeedMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-  // Toggle AI Voiceover Audio Reader
-  const toggleAudio = () => {
+  // Start or Toggle AI Voiceover Audio Reader with specific rate
+  const toggleAudioWithRate = (targetRate = playbackSpeed) => {
     if (typeof window === 'undefined' || !('speechSynthesis' in window)) {
       alert("Text-to-speech audio reader is not supported in this browser.");
       return;
     }
 
+    window.speechSynthesis.cancel();
+
+    const textToRead = `${article.title}. By ${article.author || 'The Daily Brief Bureau'}. ${paragraphs.slice(0, isGated ? 1 : paragraphs.length).join('. ')}`;
+    const utterance = new SpeechSynthesisUtterance(textToRead);
+    utteranceRef.current = utterance;
+
+    utterance.rate = targetRate;
+    utterance.pitch = 1.0;
+
+    // Select natural English voice if available
+    const voices = window.speechSynthesis.getVoices();
+    const englishVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Daniel'))) || voices.find(v => v.lang.startsWith('en'));
+    if (englishVoice) {
+      utterance.voice = englishVoice;
+    }
+
+    const totalChars = textToRead.length;
+
+    utterance.onboundary = (event) => {
+      if (event.charIndex !== undefined && totalChars > 0) {
+        const progress = Math.min(100, Math.round((event.charIndex / totalChars) * 100));
+        setAudioProgress(progress);
+      }
+    };
+
+    utterance.onend = () => {
+      setIsPlayingAudio(false);
+      setAudioProgress(100);
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    };
+
+    utterance.onerror = () => {
+      setIsPlayingAudio(false);
+      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    };
+
+    window.speechSynthesis.speak(utterance);
+    setIsPlayingAudio(true);
+    setAudioProgress(0);
+    setElapsedTimeStr('0:00');
+
+    // Start time tracking
+    startTimeRef.current = Date.now();
+    if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+    
+    let secondsPlayed = 0;
+    progressTimerRef.current = setInterval(() => {
+      secondsPlayed += 1;
+      const mins = Math.floor(secondsPlayed / 60);
+      const secs = (secondsPlayed % 60).toString().padStart(2, '0');
+      setElapsedTimeStr(`${mins}:${secs}`);
+
+      // Estimate progress bar fill based on character reading rate (approx 15 chars/sec * rate)
+      const estimatedTotalSecs = Math.max(15, Math.round(totalChars / (15 * targetRate)));
+      const estProgress = Math.min(99, Math.round((secondsPlayed / estimatedTotalSecs) * 100));
+      setAudioProgress(prev => Math.max(prev, estProgress));
+    }, 1000);
+  };
+
+  const toggleAudio = () => {
     if (isPlayingAudio) {
-      // Stop speech
       window.speechSynthesis.cancel();
       setIsPlayingAudio(false);
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
     } else {
-      window.speechSynthesis.cancel();
-
-      const textToRead = `${article.title}. By ${article.author || 'The Daily Brief Bureau'}. ${paragraphs.slice(0, isGated ? 1 : paragraphs.length).join('. ')}`;
-      const utterance = new SpeechSynthesisUtterance(textToRead);
-      utteranceRef.current = utterance;
-
-      const rate = getRate(playbackSpeed);
-      utterance.rate = rate;
-      utterance.pitch = 1.0;
-
-      // Select natural English voice if available
-      const voices = window.speechSynthesis.getVoices();
-      const englishVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Daniel'))) || voices.find(v => v.lang.startsWith('en'));
-      if (englishVoice) {
-        utterance.voice = englishVoice;
-      }
-
-      const totalChars = textToRead.length;
-
-      utterance.onboundary = (event) => {
-        if (event.charIndex !== undefined && totalChars > 0) {
-          const progress = Math.min(100, Math.round((event.charIndex / totalChars) * 100));
-          setAudioProgress(progress);
-        }
-      };
-
-      utterance.onend = () => {
-        setIsPlayingAudio(false);
-        setAudioProgress(100);
-        if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-      };
-
-      utterance.onerror = () => {
-        setIsPlayingAudio(false);
-        if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-      };
-
-      window.speechSynthesis.speak(utterance);
-      setIsPlayingAudio(true);
-      setAudioProgress(0);
-      setElapsedTimeStr('0:00');
-
-      // Start time tracking
-      startTimeRef.current = Date.now();
-      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-      
-      let secondsPlayed = 0;
-      progressTimerRef.current = setInterval(() => {
-        secondsPlayed += 1;
-        const mins = Math.floor(secondsPlayed / 60);
-        const secs = (secondsPlayed % 60).toString().padStart(2, '0');
-        setElapsedTimeStr(`${mins}:${secs}`);
-
-        // Estimate progress bar fill based on character reading rate (approx 15 chars/sec)
-        const estimatedTotalSecs = Math.max(15, Math.round(totalChars / (15 * rate)));
-        const estProgress = Math.min(99, Math.round((secondsPlayed / estimatedTotalSecs) * 100));
-        setAudioProgress(prev => Math.max(prev, estProgress));
-      }, 1000);
+      toggleAudioWithRate(playbackSpeed);
     }
   };
 
-  // Change Playback Speed dynamically
-  const handleSpeedChange = () => {
-    const speeds = ['1.0x', '1.25x', '1.5x', '2.0x'];
-    const currentIdx = speeds.indexOf(playbackSpeed);
-    const nextSpeed = speeds[(currentIdx + 1) % speeds.length];
-    setPlaybackSpeed(nextSpeed);
+  // Update speed dynamically (like YouTube)
+  const updateSpeed = (newSpeed) => {
+    const rate = Math.max(0.25, Math.min(3.0, parseFloat(newSpeed.toFixed(2))));
+    setPlaybackSpeed(rate);
 
-    if (isPlayingAudio && window.speechSynthesis) {
+    if (isPlayingAudio && typeof window !== 'undefined' && 'speechSynthesis' in window) {
       window.speechSynthesis.cancel();
       setIsPlayingAudio(false);
       setTimeout(() => {
-        toggleAudio();
+        toggleAudioWithRate(rate);
       }, 100);
     }
   };
@@ -254,9 +261,10 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
           boxShadow: '0 8px 24px rgba(0, 0, 0, 0.25)',
           display: 'flex',
           alignItems: 'center',
-          justify: 'space-between',
+          justifyContent: 'space-between',
           gap: '18px',
-          flexWrap: 'wrap'
+          flexWrap: 'wrap',
+          position: 'relative'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: '1 1 300px' }}>
             {/* Play / Pause Voiceover Audio Button */}
@@ -270,7 +278,7 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
                 color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
-                justify: 'center',
+                justifyContent: 'center',
                 border: 'none',
                 cursor: 'pointer',
                 boxShadow: isPlayingAudio ? '0 0 18px rgba(220, 38, 38, 0.6)' : '0 0 18px rgba(5, 150, 105, 0.6)',
@@ -308,24 +316,157 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
             </div>
           </div>
 
-          {/* Playback Speed selector */}
-          <button 
-            onClick={handleSpeedChange}
-            style={{
-              fontSize: '12px',
-              fontWeight: 700,
-              color: '#cbd5e1',
-              background: 'rgba(255,255,255,0.1)',
-              padding: '5px 12px',
-              borderRadius: '6px',
-              border: '1px solid rgba(255,255,255,0.15)',
-              cursor: 'pointer',
-              transition: 'background 0.2s'
-            }}
-            title="Change AI Voiceover Speed"
-          >
-            {playbackSpeed}
-          </button>
+          {/* YouTube Style Playback Speed Trigger Button & Popover Container */}
+          <div style={{ position: 'relative' }}>
+            <button 
+              onClick={() => setShowSpeedMenu(!showSpeedMenu)}
+              style={{
+                fontSize: '12px',
+                fontWeight: 700,
+                color: '#cbd5e1',
+                background: 'rgba(255,255,255,0.12)',
+                padding: '6px 14px',
+                borderRadius: '8px',
+                border: '1px solid rgba(255,255,255,0.2)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'background 0.2s'
+              }}
+              title="Change Playback Speed (YouTube Style)"
+            >
+              <Gauge size={15} color="#34d399" />
+              <span>{playbackSpeed === 1.0 ? 'Normal' : `${playbackSpeed.toFixed(2)}x`}</span>
+              <ChevronRight size={14} style={{ transform: showSpeedMenu ? 'rotate(90deg)' : 'none', transition: 'transform 0.2s' }} />
+            </button>
+
+            {/* YouTube Style Playback Speed Popover Menu */}
+            {showSpeedMenu && (
+              <div 
+                ref={speedMenuRef}
+                style={{
+                  position: 'absolute',
+                  bottom: 'calc(100% + 12px)',
+                  right: 0,
+                  width: '320px',
+                  background: '#0f172a',
+                  color: '#ffffff',
+                  border: '1px solid rgba(255, 255, 255, 0.15)',
+                  borderRadius: '16px',
+                  padding: '18px 20px',
+                  boxShadow: '0 20px 40px rgba(0, 0, 0, 0.6)',
+                  zIndex: 99999,
+                  backdropFilter: 'blur(16px)'
+                }}
+              >
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '10px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', fontWeight: 700 }}>
+                    <Gauge size={18} color="#34d399" />
+                    <span>Playback speed</span>
+                  </div>
+                  <span style={{ fontSize: '12px', color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
+                    {playbackSpeed === 1.0 ? 'Normal (1.0x)' : `${playbackSpeed.toFixed(2)}x`}
+                  </span>
+                </div>
+
+                {/* Large Speed Readout */}
+                <div style={{ textAlign: 'center', fontSize: '26px', fontWeight: 800, marginBottom: '14px', color: '#f8fafc', fontFamily: 'var(--font-mono)' }}>
+                  {playbackSpeed.toFixed(2)}x
+                </div>
+
+                {/* Speed Slider Bar with - and + buttons */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '18px' }}>
+                  <button 
+                    onClick={() => updateSpeed(playbackSpeed - 0.05)}
+                    style={{
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '50%',
+                      background: 'rgba(255,255,255,0.12)',
+                      color: '#fff',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Decrease Speed (-0.05x)"
+                  >
+                    <Minus size={16} />
+                  </button>
+
+                  <input 
+                    type="range" 
+                    min="0.25" 
+                    max="3.0" 
+                    step="0.05" 
+                    value={playbackSpeed}
+                    onChange={(e) => updateSpeed(parseFloat(e.target.value))}
+                    style={{
+                      flex: 1,
+                      accentColor: '#059669',
+                      height: '6px',
+                      cursor: 'pointer'
+                    }}
+                  />
+
+                  <button 
+                    onClick={() => updateSpeed(playbackSpeed + 0.05)}
+                    style={{
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '50%',
+                      background: 'rgba(255,255,255,0.12)',
+                      color: '#fff',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Increase Speed (+0.05x)"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+
+                {/* YouTube Speed Preset Pills Row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px' }}>
+                  {[
+                    { val: 1.0, label: '1.0', sub: 'Normal' },
+                    { val: 1.25, label: '1.25' },
+                    { val: 1.5, label: '1.5' },
+                    { val: 2.0, label: '2.0' },
+                    { val: 3.0, label: '3.0' }
+                  ].map((preset) => {
+                    const isActive = Math.abs(playbackSpeed - preset.val) < 0.01;
+                    return (
+                      <button
+                        key={preset.val}
+                        onClick={() => updateSpeed(preset.val)}
+                        style={{
+                          flex: 1,
+                          padding: '8px 4px',
+                          borderRadius: '20px',
+                          background: isActive ? '#059669' : 'rgba(255,255,255,0.1)',
+                          color: '#ffffff',
+                          border: isActive ? '1px solid #34d399' : '1px solid transparent',
+                          cursor: 'pointer',
+                          textAlign: 'center',
+                          transition: 'all 0.15s ease'
+                        }}
+                      >
+                        <div style={{ fontSize: '13px', fontWeight: 800 }}>{preset.label}</div>
+                        {preset.sub && <div style={{ fontSize: '9px', opacity: 0.8, textTransform: 'uppercase' }}>{preset.sub}</div>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Featured Image if available */}
