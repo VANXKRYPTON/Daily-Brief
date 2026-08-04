@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { 
   Search, 
@@ -10,12 +10,16 @@ import {
   Smartphone,
   BookOpen,
   Menu,
-  Lock
+  Lock,
+  Settings,
+  CreditCard,
+  LogOut,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { MARKET_INDICES, CATEGORIES, CATEGORY_SECTIONS } from '../data/newsData';
 import { CrestLogo } from './CrestLogo';
 import { NavDrawer } from './NavDrawer';
-import { ChevronDown, ChevronUp } from 'lucide-react';
 
 export function Header({ 
   onOpenSearch, 
@@ -40,6 +44,9 @@ export function Header({
   const [hoveredCategory, setHoveredCategory] = useState(null);
   const [internalMenuOpen, setInternalMenuOpen] = useState(false);
   const [tickerData, setTickerData] = useState(MARKET_INDICES);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+
+  const profileMenuRef = useRef(null);
 
   const isMenuOpen = parentIsMenuOpen !== undefined ? parentIsMenuOpen : internalMenuOpen;
 
@@ -60,6 +67,17 @@ export function Header({
     fetchLiveTicker();
     const interval = setInterval(fetchLiveTicker, 30000);
     return () => clearInterval(interval);
+  }, []);
+
+  // Handle click outside to close profile dropdown
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(e.target)) {
+        setIsProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleToggleMenu = () => {
@@ -102,6 +120,7 @@ export function Header({
       if (currentScrollY > lastScrollY && currentScrollY > 100) {
         setShowHeader(false);
         setHoveredCategory(null);
+        setIsProfileMenuOpen(false);
       } else if (currentScrollY < lastScrollY) {
         setShowHeader(true);
       }
@@ -188,7 +207,7 @@ export function Header({
         <div className="masthead-left">
           <div className="masthead-date-row">
             <span className="masthead-date">{formattedDate}</span>
-            <button onClick={handleEPaperTrigger} className="epaper-tag" title={isLoggedIn ? "Open Digital e-Paper Edition" : "Subscriber Only e-Paper 💎"}>
+            <button onClick={handleEPaperTrigger} className="epaper-tag">
               e-Paper 💎
             </button>
           </div>
@@ -213,17 +232,163 @@ export function Header({
         {/* Right Action Icons, eBooks, Login, Theme Switcher & Red Subscribe Button */}
         <div className="masthead-right">
           {/* eBooks Link */}
-          <button onClick={handleEPaperTrigger} className="masthead-link" title={isLoggedIn ? "Digital eBooks & Special Publications" : "Subscriber Only eBooks 💎"}>
+          <button onClick={handleEPaperTrigger} className="masthead-link">
             <Smartphone size={15} />
             <span className="link-text">eBooks 💎</span>
           </button>
 
-          {/* Login / Member Status Button */}
+          {/* Login / Member Profile Menu */}
           {isLoggedIn ? (
-            <button onClick={onLogout} className="masthead-link member-status-active" title="Logged in as Subscriber. Click to logout">
-              <span className="gem-badge">💎</span>
-              <span className="link-text">{user?.name || "SUBSCRIBER"}</span>
-            </button>
+            <div className="profile-dropdown-wrapper" ref={profileMenuRef} style={{ position: 'relative' }}>
+              <button 
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} 
+                className="masthead-link member-status-active"
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+              >
+                <span className="gem-badge">💎</span>
+                <span className="link-text">{user?.name || "SUBSCRIBER"}</span>
+                <ChevronDown size={14} style={{ transform: isProfileMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+              </button>
+
+              {isProfileMenuOpen && (
+                <div 
+                  className="profile-dropdown-menu"
+                  style={{
+                    position: 'absolute',
+                    top: 'calc(100% + 8px)',
+                    right: 0,
+                    width: '240px',
+                    background: 'var(--bg-card, #ffffff)',
+                    color: 'var(--text-primary, #0f172a)',
+                    borderRadius: '10px',
+                    border: '1px solid var(--border-color, #e2e8f0)',
+                    boxShadow: '0 12px 30px rgba(0, 0, 0, 0.25)',
+                    padding: '8px 0',
+                    zIndex: 99999
+                  }}
+                >
+                  {/* User Header Info */}
+                  <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border-color, #e2e8f0)', marginBottom: '4px' }}>
+                    <div style={{ fontWeight: 800, fontSize: '14px', color: 'var(--text-primary)' }}>
+                      {user?.name || "Member Account"}
+                    </div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {user?.email || "subscriber@dailybrief.com"}
+                    </div>
+                  </div>
+
+                  {/* 1. My Profile */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      alert(`User Profile\nName: ${user?.name || 'Subscriber'}\nEmail: ${user?.email || 'subscriber@dailybrief.com'}`);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-primary)',
+                      fontSize: '13.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary, #f1f5f9)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                  >
+                    <User size={16} />
+                    <span>My Profile</span>
+                  </button>
+
+                  {/* 2. Account Settings */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      alert("Account Settings options opened.");
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-primary)',
+                      fontSize: '13.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary, #f1f5f9)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                  >
+                    <Settings size={16} />
+                    <span>Account Settings</span>
+                  </button>
+
+                  {/* 3. Become a Subscriber */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      if (onOpenSubscribe) onOpenSubscribe();
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      background: 'none',
+                      border: 'none',
+                      color: 'var(--text-primary)',
+                      fontSize: '13.5px',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-secondary, #f1f5f9)'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                  >
+                    <CreditCard size={16} />
+                    <span>Become a Subscriber</span>
+                  </button>
+
+                  <div style={{ height: '1px', background: 'var(--border-color, #e2e8f0)', margin: '4px 0' }} />
+
+                  {/* 4. Log Out */}
+                  <button
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      if (onLogout) onLogout();
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '10px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      background: 'none',
+                      border: 'none',
+                      color: '#dc2626',
+                      fontSize: '13.5px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      textAlign: 'left'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.background = '#fef2f2'}
+                    onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                  >
+                    <LogOut size={16} color="#dc2626" />
+                    <span>Log Out</span>
+                  </button>
+                </div>
+              )}
+            </div>
           ) : (
             <button onClick={onOpenLogin || handleSubscribeTrigger} className="masthead-link" title="User Login / Account">
               <span className="link-text">LOGIN</span>
@@ -243,7 +408,7 @@ export function Header({
         </div>
       </div>
 
-      {/* Primary Category Navigation Bar OR Drawer Panel (The Hindu Style) */}
+      {/* Primary Category Navigation Bar OR Drawer Panel */}
       {isMenuOpen ? (
         <>
           <div className="nav-drawer-backdrop-overlay" onClick={handleCloseMenu} />
@@ -314,7 +479,7 @@ export function Header({
             </div>
           </div>
 
-          {/* Mega Menu Section Dropdown Panel (The Hindu Style) */}
+          {/* Mega Menu Section Dropdown Panel */}
           {hoveredCategory && CATEGORY_SECTIONS[hoveredCategory] && (
             <div className="mega-menu-panel" onMouseEnter={() => setHoveredCategory(hoveredCategory)}>
               {hoveredCategory === 'deep-dives' && !isLoggedIn ? (
@@ -431,4 +596,3 @@ export function Header({
     </header>
   );
 }
-
