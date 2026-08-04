@@ -742,12 +742,12 @@ button {
 .modal-content {
   background: var(--bg-card);
   color: var(--text-primary);
-  width: 92%;
-  max-width: 980px;
-  max-height: 88vh;
+  width: 96%;
+  max-width: 1280px;
+  max-height: 92vh;
   overflow-y: auto;
   border-radius: var(--radius-lg);
-  padding: 36px 40px;
+  padding: 42px 56px;
   position: relative;
   border: 1px solid var(--border-color);
   box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);

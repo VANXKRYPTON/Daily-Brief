@@ -171,7 +171,7 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
       <div 
         className="modal-content" 
         onClick={(e) => e.stopPropagation()}
-        style={{ width: '92%', maxWidth: '980px', maxHeight: '88vh', overflowY: 'auto', padding: '36px 44px' }}
+        style={{ width: '96%', maxWidth: '1280px', maxHeight: '92vh', overflowY: 'auto', padding: '42px 56px' }}
       >
         <button className="btn-close-modal" onClick={onClose} aria-label="Close article">
           <X size={20} />
