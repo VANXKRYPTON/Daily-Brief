@@ -5,13 +5,28 @@ import './globals.css';
 import { Header } from '../components/Header';
 import { SearchOverlay } from '../components/SearchOverlay';
 import { NewsletterModal } from '../components/NewsletterModal';
+import { LoginModal } from '../components/LoginModal';
 import { NavDrawer } from '../components/NavDrawer';
 import { Footer } from '../components/Footer';
 
 export default function RootLayout({ children }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isNewsletterOpen, setIsNewsletterOpen] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const handleLoginSuccess = (userData) => {
+    setUser(userData);
+    setIsLoggedIn(true);
+    setIsLoginOpen(false);
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setUser(null);
+  };
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -26,6 +41,10 @@ export default function RootLayout({ children }) {
           onOpenMenu={() => setIsMenuOpen(!isMenuOpen)}
           onCloseMenu={() => setIsMenuOpen(false)}
           isMenuOpen={isMenuOpen}
+          onOpenLogin={() => setIsLoginOpen(true)}
+          isLoggedIn={isLoggedIn}
+          user={user}
+          onLogout={handleLogout}
         />
         
         {children}
@@ -38,6 +57,13 @@ export default function RootLayout({ children }) {
 
         {isNewsletterOpen && (
           <NewsletterModal onClose={() => setIsNewsletterOpen(false)} />
+        )}
+
+        {isLoginOpen && (
+          <LoginModal 
+            onClose={() => setIsLoginOpen(false)}
+            onLoginSuccess={handleLoginSuccess}
+          />
         )}
       </body>
     </html>
