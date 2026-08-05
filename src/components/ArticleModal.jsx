@@ -486,12 +486,22 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
         )}
 
         {/* Content Paragraphs with Dynamic Font & Document Zoom Scaling */}
-        <div style={{ fontFamily: "var(--font-body, Georgia, serif)", fontSize: `${Math.round(18 * zoomLevel)}px`, lineHeight: 1.7, color: 'var(--text-primary)', transition: 'font-size 0.2s ease' }}>
-          {paragraphs.slice(0, isGated ? 1 : paragraphs.length).map((paragraph, idx) => (
-            <p key={idx} style={{ marginBottom: '24px' }}>
-              {paragraph}
-            </p>
-          ))}
+        <div 
+          className="article-rich-body"
+          style={{ fontFamily: "var(--font-body, Georgia, serif)", fontSize: `${Math.round(18 * zoomLevel)}px`, lineHeight: 1.7, color: 'var(--text-primary)', transition: 'font-size 0.2s ease' }}
+        >
+          {article.content && (article.content.includes('<p>') || article.content.includes('<h1>') || article.content.includes('<h2>') || article.content.includes('<div>') || article.content.includes('<table')) ? (
+            <div 
+              style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} 
+              dangerouslySetInnerHTML={{ __html: article.content }} 
+            />
+          ) : (
+            paragraphs.slice(0, isGated ? 1 : paragraphs.length).map((paragraph, idx) => (
+              <p key={idx} style={{ marginBottom: '24px' }}>
+                {paragraph}
+              </p>
+            ))
+          )}
 
           {/* Gated Paywall Banner for Deep Dives */}
           {isGated && (

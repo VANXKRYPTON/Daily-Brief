@@ -139,11 +139,18 @@ export default function ArticlePage({ params }) {
 
       {/* Article Body */}
       <div style={{ fontFamily: 'var(--font-serif)', fontSize: '19px', lineHeight: 1.7, color: 'var(--text-primary)' }}>
-        {(article.content || article.excerpt || '').split('\n\n').map((para, i) => (
-          <p key={i} style={{ marginBottom: '24px' }}>
-            {para}
-          </p>
-        ))}
+        {article.content && (article.content.includes('<p>') || article.content.includes('<h1>') || article.content.includes('<h2>') || article.content.includes('<div>') || article.content.includes('<table')) ? (
+          <div 
+            style={{ display: 'flex', flexDirection: 'column', gap: '16px' }} 
+            dangerouslySetInnerHTML={{ __html: article.content }} 
+          />
+        ) : (
+          (article.content || article.excerpt || '').split('\n\n').map((para, i) => (
+            <p key={i} style={{ marginBottom: '24px' }}>
+              {para}
+            </p>
+          ))
+        )}
       </div>
     </main>
   );
