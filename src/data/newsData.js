@@ -137,6 +137,54 @@ export const CATEGORY_SECTIONS = {
       cta: "SEE ALL NEWSLETTERS"
     }
   },
+  "movies": {
+    name: "Movies",
+    sections: [
+      { name: "Box Office & Blockbusters", count: 28 },
+      { name: "Film Festivals & Oscars", count: 19 },
+      { name: "Streaming & OTT Releases", count: 35 },
+      { name: "Director Cut & Screenwriting", count: 14 }
+    ],
+    spotlight: {
+      tag: "FEATURE",
+      title: "The Cinema Horizon",
+      desc: "Inside Hollywood & global cinema production trends and premiere reviews.",
+      image: "https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=400&q=80",
+      cta: "EXPLORE MOVIES"
+    }
+  },
+  "lifestyle": {
+    name: "Lifestyle",
+    sections: [
+      { name: "Wellness & Longevity", count: 32 },
+      { name: "Architecture & Interiors", count: 24 },
+      { name: "Travel & Culinary Arts", count: 41 },
+      { name: "High Fashion & Horology", count: 18 }
+    ],
+    spotlight: {
+      tag: "FEATURE",
+      title: "Modern Living & Culture",
+      desc: "Curated guides on modern architecture, wellness science, and luxury travel.",
+      image: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=400&q=80",
+      cta: "EXPLORE LIFESTYLE"
+    }
+  },
+  "sports": {
+    name: "Sports",
+    sections: [
+      { name: "Cricket & World Cups", count: 45 },
+      { name: "Football & European Leagues", count: 52 },
+      { name: "Formula 1 & Motorsport", count: 29 },
+      { name: "Tennis Grand Slams", count: 21 }
+    ],
+    spotlight: {
+      tag: "FEATURE",
+      title: "Global Sports Arena",
+      desc: "Comprehensive analytics, live tournament stats, and championship playbooks.",
+      image: "https://images.unsplash.com/photo-1461896836934-ffe607ba8211?auto=format&fit=crop&w=400&q=80",
+      cta: "EXPLORE SPORTS"
+    }
+  },
   "deep-dives": {
     name: "Deep Dives 💎",
     sections: [

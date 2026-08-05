@@ -401,6 +401,40 @@ export function Header({
             {theme === 'light' ? <Moon size={19} /> : <Sun size={19} color="#f59e0b" />}
           </button>
 
+          {/* Digital Edition Button (Moved directly to the left side of SUBSCRIBE button) */}
+          <button 
+            onClick={handleEPaperTrigger}
+            style={{ 
+              background: 'linear-gradient(135deg, rgba(220, 38, 38, 0.12) 0%, rgba(239, 68, 68, 0.06) 100%)', 
+              border: '1px solid rgba(220, 38, 38, 0.35)', 
+              borderRadius: '4px', 
+              cursor: 'pointer', 
+              padding: '7px 13px', 
+              fontSize: '11.5px', 
+              fontWeight: 800, 
+              color: '#dc2626', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '5px',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 2px 6px rgba(220, 38, 38, 0.15)',
+              transition: 'all 0.2s ease',
+              textTransform: 'uppercase',
+              letterSpacing: '0.4px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.background = 'rgba(220, 38, 38, 0.2)';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.background = 'linear-gradient(135deg, rgba(220, 38, 38, 0.12) 0%, rgba(239, 68, 68, 0.06) 100%)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+            title={isLoggedIn ? "Digital Edition Reader" : "Subscriber Only Digital Edition 💎"}
+          >
+            <span>Digital Edition 💎 ➔</span>
+          </button>
+
           {/* Red Subscribe Button */}
           <button onClick={handleSubscribeTrigger} className="subscribe-btn-red" title="Subscribe to Daily Brief Premium">
             SUBSCRIBE
@@ -467,16 +501,6 @@ export function Header({
                 );
               })}
             </ul>
-
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button 
-                onClick={handleEPaperTrigger}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '12px', fontWeight: 700, color: 'var(--accent-crimson)', display: 'flex', alignItems: 'center', gap: '4px' }}
-                title={isLoggedIn ? "Digital Edition Reader" : "Subscriber Only Digital Edition 💎"}
-              >
-                <span>Digital Edition 💎 ➔</span>
-              </button>
-            </div>
           </div>
 
           {/* Mega Menu Section Dropdown Panel */}
