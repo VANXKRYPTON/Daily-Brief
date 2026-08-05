@@ -1,0 +1,72 @@
+import { NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+
+function getDb() {
+  const dbPath = path.join(process.cwd(), '..', 'shared_database.json');
+  if (fs.existsSync(dbPath)) {
+    return JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+  }
+  const altPath = path.join(process.cwd(), 'shared_database.json');
+  if (fs.existsSync(altPath)) {
+    return JSON.parse(fs.readFileSync(altPath, 'utf8'));
+  }
+  return { articles: [], subscribers: [], supportTickets: [] };
+}
+
+function saveDb(data) {
+  let dbPath = path.join(process.cwd(), '..', 'shared_database.json');
+  if (!fs.existsSync(path.dirname(dbPath))) {
+    dbPath = path.join(process.cwd(), 'shared_database.json');
+  }
+  fs.writeFileSync(dbPath, JSON.stringify(data, null, 2), 'utf8');
+}
+
+export async function GET(req) {
+  try {
+    const db = getDb();
+    const { searchParams } = new URL(req.url);
+    const category = searchParams.get('category');
+    const featured = searchParams.get('featured');
+
+    let list = db.articles || [];
+
+    if (category && category !== 'top-stories' && category !== 'All') {
+      list = list.filter(a => a.category.toLowerCase() === category.toLowerCase() || a.category.toLowerCase().includes(category.toLowerCase()));
+    }
+
+    if (featured === 'true') {
+      list = list.filter(a => a.featured === true);
+    }
+
+    return NextResponse.json({ success: true, data: list });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  }
+}
+
+export async function POST(req) {
+  try {
+    const body = await req.json();
+    const db = getDb();
+
+    const newArticle = {
+      id: `art-${Date.now()}`,
+      title: body.title || 'Untitled Article',
+      category: body.category || 'Technology',
+      author: body.author || 'Staff Reporter',
+      status: body.status || 'Published',
+      summary: body.summary || '',
+      content: body.content || '',
+      featured: !!body.featured,
+      publishedAt: new Date().toISOString()
+    };
+
+    db.articles = [newArticle, ...(db.articles || [])];
+    saveDb(db);
+
+    return NextResponse.json({ success: true, data: newArticle });
+  } catch (err) {
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  }
+}

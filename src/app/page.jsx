@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   Volume2, 
@@ -15,19 +15,44 @@ import {
   Lock
 } from 'lucide-react';
 import { 
-  HERO_FEATURED, 
-  HERO_SECONDARY, 
-  MAIN_ARTICLES, 
-  MOST_READ, 
-  DEEP_DIVES 
+  HERO_FEATURED as FALLBACK_HERO_FEATURED, 
+  HERO_SECONDARY as FALLBACK_HERO_SECONDARY, 
+  MAIN_ARTICLES as FALLBACK_MAIN_ARTICLES, 
+  MOST_READ as FALLBACK_MOST_READ, 
+  DEEP_DIVES as FALLBACK_DEEP_DIVES 
 } from '../data/newsData';
 import { ArticleModal } from '../components/ArticleModal';
 import { LoginModal } from '../components/LoginModal';
 
 export default function HomePage() {
+  const [dbArticles, setDbArticles] = useState([]);
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // Fetch live articles from shared common database
+  const fetchLiveArticles = async () => {
+    try {
+      const res = await fetch('/api/db/articles');
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+        setDbArticles(json.data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch live database articles:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchLiveArticles();
+    const interval = setInterval(fetchLiveArticles, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Compute live featured story & articles
+  const liveFeatured = dbArticles.find(a => a.featured) || dbArticles[0] || FALLBACK_HERO_FEATURED;
+  const liveArticlesList = dbArticles.length > 0 ? dbArticles : FALLBACK_MAIN_ARTICLES;
+  const secondaryStack = dbArticles.length > 1 ? dbArticles.slice(1, 4) : FALLBACK_HERO_SECONDARY;
 
   const handleDeepDiveClick = (dive) => {
     if (!isLoggedIn) {
@@ -45,10 +70,10 @@ export default function HomePage() {
         <article className="hero-main-card">
           <div className="hero-img-box">
             <img 
-              src={HERO_FEATURED.imageUrl} 
-              alt={HERO_FEATURED.title} 
+              src={liveFeatured.imageUrl || "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80"} 
+              alt={liveFeatured.title} 
             />
-            {HERO_FEATURED.hasAudio && (
+            {liveFeatured.hasAudio && (
               <div style={{ position: 'absolute', top: '16px', right: '16px', background: 'rgba(9, 13, 22, 0.85)', backdropFilter: 'blur(4px)', color: '#34d399', fontSize: '11px', fontWeight: 800, padding: '6px 12px', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <Volume2 size={14} />
                 <span>LISTEN • 5 MIN</span>
@@ -59,32 +84,27 @@ export default function HomePage() {
           <div className="hero-content">
             <div className="category-tag">
               <Sparkles size={13} />
-              <span>{HERO_FEATURED.category}</span>
+              <span>{liveFeatured.category || 'Technology'}</span>
             </div>
 
-            <div onClick={() => setSelectedArticle(HERO_FEATURED)} style={{ cursor: 'pointer' }}>
-              <h1 className="hero-headline">{HERO_FEATURED.title}</h1>
+            <div onClick={() => setSelectedArticle(liveFeatured)} style={{ cursor: 'pointer' }}>
+              <h1 className="hero-headline">{liveFeatured.title}</h1>
             </div>
 
-            <p className="hero-subtitle">{HERO_FEATURED.subtitle}</p>
+            <p className="hero-subtitle">{liveFeatured.summary || liveFeatured.subtitle}</p>
 
             <div className="author-meta">
-              <img 
-                src={HERO_FEATURED.authorAvatar} 
-                alt={HERO_FEATURED.author} 
-                className="author-avatar" 
-              />
               <div>
-                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{HERO_FEATURED.author}</div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{HERO_FEATURED.authorTitle} • {HERO_FEATURED.readTime}</div>
+                <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{liveFeatured.author || 'Staff Reporter'}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{liveFeatured.publishedAt ? new Date(liveFeatured.publishedAt).toLocaleDateString() : 'August 2026'} • 5 min read</div>
               </div>
             </div>
           </div>
         </article>
 
-        {/* Secondary Stack (3 Cards) */}
+        {/* Secondary Stack */}
         <div className="hero-secondary-stack">
-          {HERO_SECONDARY.map((story) => (
+          {secondaryStack.map((story) => (
             <article key={story.id} className="secondary-card" onClick={() => setSelectedArticle(story)} style={{ cursor: 'pointer' }}>
               <div className="secondary-content">
                 <div className="category-tag" style={{ fontSize: '10px' }}>
@@ -92,15 +112,15 @@ export default function HomePage() {
                 </div>
                 <h3 className="secondary-title">{story.title}</h3>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '6px' }}>
-                  <span>{story.author}</span>
+                  <span>{story.author || 'Desk'}</span>
                   <span>•</span>
                   <Clock size={12} />
-                  <span>{story.readTime}</span>
+                  <span>3 min read</span>
                 </div>
               </div>
 
               <img 
-                src={story.imageUrl} 
+                src={story.imageUrl || "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=400&q=80"} 
                 alt={story.title} 
                 className="secondary-img" 
               />
@@ -114,14 +134,14 @@ export default function HomePage() {
         {/* Left Column Feed */}
         <div className="feed-grid">
           <div className="section-title">
-            <span>Latest Intelligence</span>
+            <span>Latest Intelligence (Live Shared DB)</span>
             <Compass size={20} color="var(--accent-emerald)" />
           </div>
 
-          {MAIN_ARTICLES.map((article) => (
+          {liveArticlesList.map((article) => (
             <article key={article.id} className="article-card-horizontal" onClick={() => setSelectedArticle(article)} style={{ cursor: 'pointer' }}>
               <img 
-                src={article.imageUrl} 
+                src={article.imageUrl || "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=600&q=80"} 
                 alt={article.title} 
                 className="card-h-img" 
               />
@@ -133,19 +153,19 @@ export default function HomePage() {
                   {article.title}
                 </h2>
                 <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '12px' }}>
-                  {article.excerpt}
+                  {article.summary || article.excerpt}
                 </p>
                 <div style={{ marginTop: 'auto', fontSize: '12px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{article.author}</span>
+                  <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{article.author || 'Staff Reporter'}</span>
                   <span>•</span>
-                  <span>{article.readTime}</span>
+                  <span>4 min read</span>
                 </div>
               </div>
             </article>
           ))}
         </div>
 
-        {/* Right Sidebar: Trending Top 5 */}
+        {/* Right Sidebar */}
         <aside className="sidebar-trending">
           <div className="section-title">
             <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -155,9 +175,9 @@ export default function HomePage() {
           </div>
 
           <div>
-            {MOST_READ.map((item) => (
+            {(dbArticles.length > 0 ? dbArticles.slice(0, 5) : FALLBACK_MOST_READ).map((item, idx) => (
               <div key={item.id} className="trending-item" onClick={() => setSelectedArticle(item)} style={{ cursor: 'pointer' }}>
-                <span className="rank-number">0{item.rank}</span>
+                <span className="rank-number">0{idx + 1}</span>
                 <div>
                   <div className="category-tag" style={{ fontSize: '9px', marginBottom: '2px' }}>
                     {item.category}
@@ -166,7 +186,7 @@ export default function HomePage() {
                     {item.title}
                   </h4>
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
-                    {item.readTime}
+                    {item.author || 'Staff Desk'}
                   </div>
                 </div>
               </div>
@@ -198,7 +218,7 @@ export default function HomePage() {
           </div>
 
           <div className="deep-dives-grid">
-            {DEEP_DIVES.map((dive) => (
+            {FALLBACK_DEEP_DIVES.map((dive) => (
               <article 
                 key={dive.id} 
                 className="deep-card"
