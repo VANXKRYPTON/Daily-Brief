@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import ShareModal from './ShareModal';
 import { 
   X, 
   Play,
@@ -25,7 +26,7 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
   const [audioProgress, setAudioProgress] = useState(0); // 0 to 100%
   const [elapsedTimeStr, setElapsedTimeStr] = useState('0:00');
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const utteranceRef = useRef(null);
   const startTimeRef = useRef(null);
@@ -168,63 +169,67 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
   };
 
   const handleShare = () => {
-    navigator.clipboard?.writeText?.(window.location.href);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setShowShareModal(true);
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div 
-        className="modal-content" 
-        onClick={(e) => e.stopPropagation()}
-        style={{ width: '96%', maxWidth: '1280px', maxHeight: '92vh', overflowY: 'auto', padding: '42px 56px' }}
-      >
-        <button className="btn-close-modal" onClick={onClose} aria-label="Close article">
-          <X size={20} />
-        </button>
+    <>
+      <ShareModal 
+        isOpen={showShareModal} 
+        onClose={() => setShowShareModal(false)} 
+        article={article} 
+      />
 
-        {/* Reader Utility Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color, #eee)', paddingBottom: '16px', marginBottom: '24px' }}>
-          <div className="category-badge" style={{ margin: 0, fontSize: '13px', fontWeight: 800 }}>
-            {article.category || "NEWS"} {isDeepDive && "💎 PREMIUM"}
-          </div>
+      <div className="modal-overlay" onClick={onClose}>
+        <div 
+          className="modal-content" 
+          onClick={(e) => e.stopPropagation()}
+          style={{ width: '96%', maxWidth: '1280px', maxHeight: '92vh', overflowY: 'auto', padding: '42px 56px' }}
+        >
+          <button className="btn-close-modal" onClick={onClose} aria-label="Close article">
+            <X size={20} />
+          </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {/* Functional Text Resizer Pill (A- / A+ / Keyboard Ctrl+ / Ctrl-) */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-secondary, #f5f5f5)', borderRadius: '6px', padding: '4px 12px' }}>
-              <button 
-                onClick={() => setZoomLevel(prev => Math.max(0.7, +(prev - 0.15).toFixed(2)))} 
-                style={{ fontWeight: 800, fontSize: '14px', padding: '2px 6px', color: 'var(--text-primary)', border: 'none', background: 'none', cursor: 'pointer' }}
-                title="Decrease Text & Document Size (Ctrl - or A-)"
-              >
-                A-
-              </button>
-              <span style={{ color: 'var(--border-color, #ccc)', fontSize: '12px' }}>|</span>
-              <button 
-                onClick={() => setZoomLevel(prev => Math.min(1.8, +(prev + 0.15).toFixed(2)))} 
-                style={{ fontWeight: 800, fontSize: '14px', padding: '2px 6px', color: 'var(--text-primary)', border: 'none', background: 'none', cursor: 'pointer' }}
-                title="Increase Text & Document Size (Ctrl + or A+)"
-              >
-                A+
-              </button>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '4px', fontFamily: 'var(--font-mono)' }}>
-                {Math.round(zoomLevel * 100)}%
-              </span>
+          {/* Reader Utility Header */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--border-color, #eee)', paddingBottom: '16px', marginBottom: '24px' }}>
+            <div className="category-badge" style={{ margin: 0, fontSize: '13px', fontWeight: 800 }}>
+              {article.category || "NEWS"} {isDeepDive && "💎 PREMIUM"}
             </div>
 
-            {/* Bookmark */}
-            <button onClick={() => setIsBookmarked(!isBookmarked)} style={{ color: isBookmarked ? '#dc2626' : 'var(--text-secondary)' }}>
-              <Bookmark size={18} fill={isBookmarked ? '#dc2626' : 'none'} />
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              {/* Functional Text Resizer Pill (A- / A+ / Keyboard Ctrl+ / Ctrl-) */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--bg-secondary, #f5f5f5)', borderRadius: '6px', padding: '4px 12px' }}>
+                <button 
+                  onClick={() => setZoomLevel(prev => Math.max(0.7, +(prev - 0.15).toFixed(2)))} 
+                  style={{ fontWeight: 800, fontSize: '14px', padding: '2px 6px', color: 'var(--text-primary)', border: 'none', background: 'none', cursor: 'pointer' }}
+                  title="Decrease Text & Document Size (Ctrl - or A-)"
+                >
+                  A-
+                </button>
+                <span style={{ color: 'var(--border-color, #ccc)', fontSize: '12px' }}>|</span>
+                <button 
+                  onClick={() => setZoomLevel(prev => Math.min(1.8, +(prev + 0.15).toFixed(2)))} 
+                  style={{ fontWeight: 800, fontSize: '14px', padding: '2px 6px', color: 'var(--text-primary)', border: 'none', background: 'none', cursor: 'pointer' }}
+                  title="Increase Text & Document Size (Ctrl + or A+)"
+                >
+                  A+
+                </button>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '4px', fontFamily: 'var(--font-mono)' }}>
+                  {Math.round(zoomLevel * 100)}%
+                </span>
+              </div>
 
-            {/* Share */}
-            <button onClick={handleShare} style={{ color: 'var(--text-secondary)' }}>
-              <Share2 size={18} />
-            </button>
-            {copied && <span style={{ fontSize: '12px', color: '#dc2626', fontWeight: 700 }}>Link Copied!</span>}
+              {/* Bookmark */}
+              <button onClick={() => setIsBookmarked(!isBookmarked)} style={{ color: isBookmarked ? '#dc2626' : 'var(--text-secondary)' }}>
+                <Bookmark size={18} fill={isBookmarked ? '#dc2626' : 'none'} />
+              </button>
+
+              {/* Share */}
+              <button onClick={handleShare} style={{ color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer' }} title="Share Article">
+                <Share2 size={18} />
+              </button>
+            </div>
           </div>
-        </div>
 
         {/* Article Headline with Dynamic Zoom Scaling */}
         <h1 style={{ 
@@ -569,5 +574,6 @@ export const ArticleModal = ({ article, onClose, isLoggedIn, onOpenLogin, onLogi
         </div>
       </div>
     </div>
+    </>
   );
 };
