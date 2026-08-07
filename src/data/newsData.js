@@ -172,6 +172,11 @@ export const CATEGORY_SECTIONS = {
   "sports": {
     name: "Sports",
     sections: [
+      { name: "Basketball", count: 38 },
+      { name: "Olympics", count: 44 },
+      { name: "Asian Games", count: 26 },
+      { name: "Wrestling", count: 18 },
+      { name: "FIFA World Cup", count: 62 },
       { name: "Cricket & World Cups", count: 45 },
       { name: "Football & European Leagues", count: 52 },
       { name: "Formula 1 & Motorsport", count: 29 },
