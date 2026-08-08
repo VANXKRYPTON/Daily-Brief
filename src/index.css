@@ -53,7 +53,7 @@ button {
   border-bottom: 1px solid var(--border-color, #e2e2e2);
   position: sticky;
   top: 0;
-  z-index: 90;
+  z-index: 1000;
   backdrop-filter: blur(12px);
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, background-color 0.2s;
   will-change: transform;

@@ -20,7 +20,7 @@ import {
 import { MARKET_INDICES, CATEGORIES, CATEGORY_SECTIONS } from '../data/newsData';
 import { CrestLogo } from './CrestLogo';
 import { NavDrawer } from './NavDrawer';
-import UserProfileDrawer from './UserProfileDrawer';
+import AccountDrawer from './AccountDrawer';
 
 export function Header({ 
   onOpenSearch, 
@@ -242,27 +242,36 @@ export function Header({
           {isLoggedIn ? (
             <div className="profile-dropdown-wrapper" ref={profileMenuRef} style={{ position: 'relative' }}>
               <button 
-                onClick={() => setIsProfileMenuOpen(true)} 
+                onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} 
                 className="masthead-link member-status-active"
                 style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                title="Open Profile Drawer"
+                title="Open Account Profile Drawer"
               >
                 <span className="gem-badge">💎</span>
-                <span className="link-text">{user?.name || "SUBSCRIBER"}</span>
+                <span className="link-text">{user?.name || (user?.email ? user.email.split('@')[0] : "SUBSCRIBER")}</span>
                 <ChevronDown size={14} style={{ transform: isProfileMenuOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
               </button>
 
-              <UserProfileDrawer
+              <AccountDrawer
                 isOpen={isProfileMenuOpen}
                 onClose={() => setIsProfileMenuOpen(false)}
                 user={user}
                 isLoggedIn={isLoggedIn}
                 onLogout={onLogout}
                 onOpenSubscribe={onOpenSubscribe}
+                onOpenLogin={onOpenLogin}
               />
             </div>
           ) : (
-            <button onClick={onOpenLogin || handleSubscribeTrigger} className="masthead-link" title="User Login / Account">
+            <button 
+              onClick={() => {
+                if (onOpenLogin) onOpenLogin();
+              }} 
+              className="masthead-link" 
+              aria-label="User Login"
+              title="User Login / Account" 
+              style={{ display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+            >
               <span className="link-text">LOGIN</span>
               <User size={17} />
             </button>

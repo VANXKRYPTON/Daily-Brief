@@ -138,7 +138,7 @@ button {
   border-bottom: 1px solid var(--border-color);
   position: sticky;
   top: 0;
-  z-index: 90;
+  z-index: 1000;
   backdrop-filter: blur(12px);
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, background-color 0.2s;
   will-change: transform;
@@ -1575,4 +1575,14 @@ button {
 * {
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.25) rgba(15, 23, 42, 0.6);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
 }
